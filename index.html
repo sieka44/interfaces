@@ -95,6 +95,22 @@
         }
     }
 
+    function convertToType(strType) {
+        console.log("HELLO")
+        switch (strType) {
+            case "stone":
+                return objectTypes.STONE;
+            case "bench":
+                return objectTypes.BENCH;
+            case "path":
+                return objectTypes.PATH;
+            case "tree":
+                return objectTypes.TREE;
+            default:
+                return objectTypes.LAWN;
+        }
+    }
+
     function applyGraph(board, graph) {
         let x = graph.startX;
         let y = graph.startY;
@@ -104,7 +120,6 @@
 
 
     function drawVertex(x, y, vertex) {
-        console.log(x, y, vertex);
         board[x][y].changeObjectType(vertex.objectType);
         for (let i = 0; i < vertex.edgeList.length; i++) {
             let e = vertex.edgeList[i];
@@ -120,19 +135,26 @@
         }
     }
 
+    vertexxxys = []
     d3.csv("https://raw.githubusercontent.com/sieka44/interfaces/master/graph_vertex.csv", function (data) {
-        console.log(data);
+        var vertexes = d3.map(data, function (v) {
+            vertexxxys.push(new Vertex(v.id, objectTypes.STONE));
+        })
+        let ver1 = new Vertex("V2", objectTypes.STONE);
+        // vertexxxys.push(ver1);
+        // let edge1 = new Edge(2, -1, ver1);
+        // let ver2 = new Vertex(2, objectTypes.PATH);
+        // let edge2 = new Edge(1, 1, ver2);
+        // let startVertex = new Vertex(1, objectTypes.PATH);
+        let ver2 = vertexxxys.pop();
+        console.log(ver1);
+        console.log(ver2);
+        let gardenGraph = new Graph(ver1, 10, 10);
+        // startVertex.addEdge(edge1);
+        // startVertex.addEdge(edge2);
+        applyGraph(board, gardenGraph);
     })
 
-    let ver1 = new Vertex(2, objectTypes.TREE);
-    let edge1 = new Edge(2, -1, ver1);
-    let ver2 = new Vertex(2, objectTypes.PATH);
-    let edge2 = new Edge(1, 1, ver2);
-    let startVertex = new Vertex(1, objectTypes.PATH);
-    let gardenGraph = new Graph(startVertex, 10, 10);
-    startVertex.addEdge(edge1);
-    startVertex.addEdge(edge2);
-    applyGraph(board, gardenGraph);
 
     let winWidth = window.innerWidth;
     let winHeight = window.innerHeight;
@@ -342,16 +364,6 @@
         .attr("text-anchor", "left")
         .style("font-size", "22px")
         .text("A d3.js heatmap");
-
-    // Add subtitle to graph
-    svg.append("text")
-        .attr("x", 0)
-        .attr("y", -20)
-        .attr("text-anchor", "left")
-        .style("font-size", "14px")
-        .style("fill", "grey")
-        .style("max-width", 400)
-        .text("A short description of the take-away message of this chart.");
 
 
 </script>
