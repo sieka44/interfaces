@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <script src="https://d3js.org/d3.v4.js"></script>
+<input id="nextGeneration" type="button" value="nextGeneration" onclick="nextGeneration();"/>
 <div id="my_dataviz1"></div>
 <div id="my_dataviz2"></div>
 <div id="my_dataviz3"></div>
 <div id="my_dataviz4"></div>
+<div id="my_dataviz5"></div>
 <body>
 </body>
 <script>
     const SIZE = 20;
+    const GENERATION_SIZE = 30;
+    const BOARD_SIZE = 4;
     document.body.style.background = "lightblue";
 
     const objectTypes = {
@@ -70,15 +74,24 @@
             this.mapToDraw = new Array(this.size);
             this.placementBoard = new Array(this.size);
             this.exisitingHolderList = [];
-            this.init();
+            this.score = 0;
+            this.initDraw();
+            this.initPlacement();
         }
 
-        init() {
+        initDraw() {
             for (let x = 0; x < this.size; x++) {
                 this.mapToDraw[x] = new Array(this.size);
-                this.placementBoard[x] = new Array(this.size);
                 for (let y = 0; y < this.size; y++) {
                     this.mapToDraw[x][y] = new SingleField(x, y);
+                }
+            }
+        }
+
+        initPlacement() {
+            for (let x = 0; x < this.size; x++) {
+                this.placementBoard[x] = new Array(this.size);
+                for (let y = 0; y < this.size; y++) {
                     this.placementBoard[x][y] = new Holder(x, y, 0);
                 }
             }
@@ -91,6 +104,12 @@
             for (let i = 0; i < epochs; i++) {
                 curr_holder = this.exisitingHolderList[Math.floor(Math.random() * this.exisitingHolderList.length)];
                 curr_holder.updateQuantity();
+                if (curr_holder.quantity > 2) {
+                    const index = this.exisitingHolderList.indexOf(curr_holder);
+                    if (index > -1) {
+                        this.exisitingHolderList.splice(index, 1);
+                    }
+                }
                 this.applyGrammar(curr_holder)
             }
         }
@@ -106,7 +125,7 @@
         addToListAndUpdate(x, y) {
             if (this.checkIfValid(x) && this.checkIfValid(y)) {
                 let holder = this.placementBoard[x][y];
-                if (!this.exisitingHolderList.includes(holder)) {
+                if (holder.quantity < 3 && !this.exisitingHolderList.includes(holder)) {
                     this.exisitingHolderList.push(holder);
                 }
             }
@@ -121,9 +140,11 @@
                     }
                 }
             }
+            this.score = Scorer.getScoreBaseOnObjType(this.mapToDraw);
         }
 
         updateValues(x_curr, y_curr) {
+            // this.mapToDraw[x_curr][y_curr].convert();
             for (let i = -1; i <= 1; i++) {
                 for (let j = -1; j <= 1; j++) {
                     let x_loc = x_curr + i;
@@ -145,33 +166,77 @@
 
     }
 
+    class Scorer {
+        static objTypeInc1 = objectTypes.WHITE;
+        static objTypeInc2 = objectTypes.WHITE;
+        static objTypeExc = objectTypes.BLACK;
+
+        static setUp(objTypeIncluded1, objTypeIncluded2, objTypeExcluded) {
+            this.objTypeInc1 = objTypeIncluded1;
+            this.objTypeInc2 = objTypeIncluded2;
+            this.objTypeExc = objTypeExcluded;
+        }
+
+        static getScoreBaseOnObjType(map) {
+            let score = 0;
+            for (let x = 0; x < SIZE; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    let curr_vertex = map[x][y];
+                    score += this.getPointForVertex(curr_vertex.objectType);
+                }
+            }
+            return score;
+        }
+
+        static getPointForVertex(type) {
+            switch (type) {
+                case this.objTypeExc:
+                    return -1;
+                case this.objTypeInc1:
+                    return 1;
+                case this.objTypeInc2:
+                    return 1;
+                default:
+                    return 0;
+            }
+        }
+    }
+
+    class Mixer{
+        constructor(){
+
+        }
+        static
+    }
+
 
     // init
-    let gen_size = 30;
-    let board1 = new Board(SIZE);
-    let board2 = new Board(SIZE);
-    let board3 = new Board(SIZE);
-    let board4 = new Board(SIZE);
-    board1.generateHolders(gen_size);
-    board2.generateHolders(gen_size);
-    board3.generateHolders(gen_size);
-    board4.generateHolders(gen_size);
+    Scorer.setUp(objectTypes.GREEN, objectTypes.BLUE, objectTypes.BLACK);
+    let boardList = [];
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        boardList.push(new Board(SIZE))
+    }
+    boardList.forEach(board => board.generateHolders(GENERATION_SIZE));
 
-    board1.applyOnBoard();
-    board2.applyOnBoard();
-    board3.applyOnBoard();
-    board4.applyOnBoard();
+    // generations
+    function nextGeneration() {
+        //TODO:Create new generation
+        boardList.forEach(board => board.applyOnBoard());
 
-    //DRAW
-    drawBoard("1", board1);
-    drawBoard("2", board2);
-    drawBoard("3", board3);
-    drawBoard("4", board4);
+        for (let i = 0; i < BOARD_SIZE; i++) {
+            drawBoard(parseInt(i + 1), boardList[i]);
+        }
+    }
+
 
     function drawBoard(divNumber, boardToDraw) {
+        d3.select("#my_dataviz" + divNumber).selectAll("*").remove();
         let margin = {top: 30, right: 30, bottom: 30, left: 30},
             width = 250,
             height = 250;
+
+        d3.select("#my_dataviz" + divNumber)
+            .append("text").text(divNumber+"* Score is: " + parseInt(boardToDraw.score));
 
         var svg = d3.select("#my_dataviz" + divNumber)
             .append("svg")
