@@ -104,7 +104,6 @@
 
 
     function drawVertex(x, y, vertex) {
-        console.log(vertex)
         board[x][y].changeObjectType(vertex.objectType);
         for (let i = 0; i < vertex.edgeList.length; i++) {
             let e = vertex.edgeList[i];
