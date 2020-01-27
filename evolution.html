@@ -7,11 +7,16 @@
 <div id="my_dataviz3"></div>
 <div id="my_dataviz4"></div>
 <div id="my_dataviz5"></div>
+<div id="my_dataviz6"></div>
+<div id="my_dataviz7"></div>
+<div id="my_dataviz8"></div>
+<div id="my_dataviz9"></div>
+<div id="my_dataviz10"></div>
 <body>
 </body>
 <script>
     const SIZE = 20;
-    const GENERATION_SIZE = 30;
+    const GENERATION_SIZE = 50;
     const BOARD_SIZE = 4;
     document.body.style.background = "lightblue";
 
@@ -140,6 +145,9 @@
                     }
                 }
             }
+        }
+
+        scoreBoard() {
             this.score = Scorer.getScoreBaseOnObjType(this.mapToDraw);
         }
 
@@ -158,6 +166,37 @@
 
         checkIfValid(i) {
             return i >= 0 && i < this.size;
+        }
+
+        isValid() {
+            for (let x = 0; x < this.size; x++) {
+                for (let y = 0; y < this.size; y++) {
+                    let v = this.placementBoard[x][y].getQuantity();
+                    if (v > 0) {
+                        if (this.check(x, y)) {
+                            // console.log("NOT VALID");
+                            // console.log(this);
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        check(ix, iy) {
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    let x_loc = ix + i;
+                    let y_loc = iy + j;
+                    if (this.checkIfValid(x_loc) && this.checkIfValid(y_loc) && i !== j) {
+                        if (this.placementBoard[x_loc][y_loc] > 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         getFlat() {
@@ -193,7 +232,7 @@
                 case this.objTypeExc:
                     return -1;
                 case this.objTypeInc1:
-                    return 1;
+                    return 2;
                 case this.objTypeInc2:
                     return 1;
                 default:
@@ -202,13 +241,64 @@
         }
     }
 
-    class Mixer{
-        constructor(){
-
+    class Mixer {
+        static generateMixed(boardA, boardB) {
+            let outputList = [];
+            for (let i = 0; i < GENERATION_SIZE - 1; i++) {
+                this.generateFour(boardA, boardB).forEach(b => outputList.push(b));
+                outputList = outputList.filter(b => b.isValid());
+                if (outputList.length>4){
+                    // console.log(outputList.slice(0,4));
+                    return outputList.slice(0,4);
+                }
+            }
+            // console.log(outputList);
+            return outputList;
         }
-        static
+
+        static generateFour(boardA, boardB) {
+            let outputList = [];
+            outputList.push(this.createVertically(boardA.placementBoard, boardB.placementBoard));
+            outputList.push(this.createVertically(boardB.placementBoard, boardA.placementBoard));
+            outputList.push(this.createHorizontally(boardA.placementBoard, boardB.placementBoard));
+            outputList.push(this.createHorizontally(boardB.placementBoard, boardA.placementBoard));
+            return outputList;
+        }
+
+        static createVertically(holders1, holders2) {
+            let outputBoard = new Board(SIZE);
+            for (let x = 0; x < SIZE; x++) {
+                for (let y = 0; y < SIZE / 2; y++) {
+                    outputBoard.placementBoard[x][y] = holders1[x][y];
+                }
+                for (let y = SIZE / 2; y < SIZE; y++) {
+                    outputBoard.placementBoard[x][y] = holders2[x][y];
+                }
+            }
+            return outputBoard;
+        }
+
+        static createHorizontally(holders1, holders2) {
+            let outputBoard = new Board(SIZE);
+            for (let x = 0; x < SIZE / 2; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    outputBoard.placementBoard[x][y] = holders1[x][y];
+                }
+            }
+            for (let x = SIZE / 2; x < SIZE; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    outputBoard.placementBoard[x][y] = holders2[x][y];
+                }
+            }
+            return outputBoard;
+        }
     }
 
+    function generateMutation() {
+        let mutation_board = new Board(SIZE);
+        mutation_board.generateHolders(GENERATION_SIZE);
+        return mutation_board;
+    }
 
     // init
     Scorer.setUp(objectTypes.GREEN, objectTypes.BLUE, objectTypes.BLACK);
@@ -217,15 +307,25 @@
         boardList.push(new Board(SIZE))
     }
     boardList.forEach(board => board.generateHolders(GENERATION_SIZE));
+    boardList.forEach(board => board.applyOnBoard());
+    boardList.forEach(board => board.scoreBoard());
+    boardList = boardList.sort((a, b) => (a.score >= b.score) ? -1 : 1);
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        drawBoard(parseInt(i + 1), boardList[i]);
+    }
 
     // generations
     function nextGeneration() {
-        //TODO:Create new generation
+        boardList = Mixer.generateMixed(boardList[0], boardList[1]);
+        boardList.push(generateMutation());
+        boardList.forEach(board => board.initDraw());
         boardList.forEach(board => board.applyOnBoard());
-
-        for (let i = 0; i < BOARD_SIZE; i++) {
+        boardList.forEach(board => board.scoreBoard());
+        boardList = boardList.sort((a, b) => (a.score >= b.score) ? -1 : 1);
+        for (let i = 0; i < boardList.length; i++) {
             drawBoard(parseInt(i + 1), boardList[i]);
         }
+
     }
 
 
@@ -236,7 +336,7 @@
             height = 250;
 
         d3.select("#my_dataviz" + divNumber)
-            .append("text").text(divNumber+"* Score is: " + parseInt(boardToDraw.score));
+            .append("text").text(divNumber + "* Score is: " + parseInt(boardToDraw.score));
 
         var svg = d3.select("#my_dataviz" + divNumber)
             .append("svg")
